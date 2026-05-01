@@ -1,10 +1,13 @@
 #ifndef TUNA2_EVALUATION_H
 #define TUNA2_EVALUATION_H
+
+#include <random>
 #include "chess.hpp"
-constexpr int mg_value[6]={100,320,334,481,1020,0};
-constexpr int eg_value[6]={147,360,300,540,1035,0};
-constexpr int mat[6]={100,300,330,500,900,0};
+#include "constants.h"
+constexpr int mat[6]={100,325,330,500,900,0};
 constexpr int side_mult[2]={1,-1};
+inline int mg_value[6] = { 82, 337, 365, 477, 1025,  0};
+inline int eg_value[6] = { 94, 281, 297, 512,  936,  0};
 inline int mg_pawn_table[64]={
 0,   0,   0,   0,   0,   0,  0,   0,
 98, 134,  61,  95,  68, 126, 34, -11,
@@ -225,6 +228,7 @@ __forceinline int evaluation(const chess::Board& pos){
     int bishop_pair=0;
     if (pos.pieces(chess::PieceType::BISHOP,chess::Color::WHITE).count()>=2){bishop_pair+=50;}
     if (pos.pieces(chess::PieceType::BISHOP,chess::Color::BLACK).count()>=2){bishop_pair-=50;}
+
 
 
     value+=mobility;

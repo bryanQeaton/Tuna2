@@ -59,6 +59,11 @@ inline void watch_input() {
             }
             else if (line == "ucinewgame") {
                 tt.clear();
+                for (auto &n:history) {
+                    for (auto &m:n) {
+                        m=0;
+                    }
+                }
             }
             else if (line.starts_with("position")) {
                 std::vector<std::string> words;
