@@ -317,6 +317,16 @@ inline uint64_t mo_test(const int depth=8,const bool verbose=true) {
                 r=chess::Move();
             }
         }
+        for (auto &n:history2ply) {
+            for (auto &m:n) {
+                for (auto &j:m) {
+                    for (auto &k:j) {
+                        k=0;
+
+                    }
+                }
+            }
+        }
         const auto sr=search(pos,-BOUND,BOUND,depth,0,false,false,chess::Move());
         if (verbose) std::cout<<sr.nodes<<" | "<<fen<<"\n";
         nodes+=sr.nodes;
@@ -336,13 +346,13 @@ void generate_nudge(int bound) {
     if (bound < 0) bound = -bound;
     for (int piece = 0; piece < 6; ++piece) {
         for (int sq = 0; sq < 64; ++sq) {
-            if (piece!=0) {
-                mg_nudge[piece][sq]=0;
-                eg_nudge[piece][sq]=0;
-                continue;
-            }
-            int delta_mg=dist(gen);
-            int delta_eg=dist(gen);
+            // if (piece!=0) {
+            //     mg_nudge[piece][sq]=0;
+            //     eg_nudge[piece][sq]=0;
+            //     continue;
+            // }
+            int delta_mg=dist(gen)*dist(gen)*dist(gen);
+            int delta_eg=dist(gen)*dist(gen)*dist(gen);
             mg_nudge[piece][sq]=delta_mg;
             eg_nudge[piece][sq]=delta_eg;
         }

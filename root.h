@@ -21,7 +21,8 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
     Engine_return last=best;
     std::vector<int> scores(legal_moves.size(),0);
     std::vector<int> indices(legal_moves.size(),0);
-    for (int d=0;d<max_depth;d++) {
+    auto t0=std::chrono::high_resolution_clock::now();
+    for (int d=0;d<=max_depth;d++) {
         if (legal_moves.size()==1&&d>=4){break;} //get a value for the move but dont spend forever on it
         int alph=-BOUND;
         uint64_t nodes=0;
@@ -49,7 +50,12 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
                 best.depth=d;
                 best.move=chess::uci::moveToUci(legal_moves[m]);
             }
-            if (stop_flag&&d>0){break;}
+            auto t1=std::chrono::high_resolution_clock::now();
+            int time=std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count();
+            if ((stop_flag||time>=time_limit)&&d>0) {
+                stop_flag=true;
+                break;
+            }
         }
         if (!stop_flag) {
             last=best;
@@ -68,7 +74,7 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
         legal_moves=std::move(sorted_moves);
         scores=std::move(sorted_scores);
     }
-
+    stop_flag=false;
     return last;
 }
 

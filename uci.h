@@ -64,6 +64,17 @@ inline void watch_input() {
                         m=0;
                     }
                 }
+                for (auto &n:history2ply) {
+                    for (auto &m:n) {
+                        for (auto &j:m) {
+                            for (auto &k:j) {
+                                k=0;
+
+                            }
+                        }
+                    }
+                }
+
             }
             else if (line.starts_with("position")) {
                 std::vector<std::string> words;
