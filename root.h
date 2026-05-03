@@ -19,8 +19,6 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
     chess::movegen::legalmoves(legal_moves,pos);
     Engine_return best={-BOUND,MAX_DEPTH,0,1,chess::uci::moveToUci(legal_moves[0])};
     Engine_return last=best;
-    std::vector<int> scores(legal_moves.size(),0);
-    std::vector<int> indices(legal_moves.size(),0);
     for (int d=0;d<max_depth;d++) {
         if (legal_moves.size()==1&&d>=4){break;} //get a value for the move but dont spend forever on it
         int alph=-BOUND;
@@ -28,9 +26,8 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
         constexpr int beta=BOUND;
         best={-BOUND,MAX_DEPTH,0,1,chess::uci::moveToUci(legal_moves[0])};
         for (int m=0;m<legal_moves.size();m++) {
-            indices[m]=m;
             pos.makeMove(legal_moves[m]);
-            Search_return sr={-BOUND,0};
+            Search_return sr;
             if (m==0) {sr=search(pos,-beta,-alph,d,0,false,false,legal_moves[m]);}
             else {
                 sr=search(pos,-alph-1,-alph,d,0,true,false,legal_moves[m]);
@@ -40,7 +37,7 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
             }
             pos.unmakeMove(legal_moves[m]);
             alph=std::max(alph,-sr.value);
-            scores[m]=-sr.value;
+            legal_moves[m].setScore(-sr.value);
             nodes+=sr.nodes;
             if (-sr.value>best.value) {
                 best.value=-sr.value;
@@ -49,24 +46,15 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
                 best.depth=d;
                 best.move=chess::uci::moveToUci(legal_moves[m]);
             }
-            if (stop_flag&&d>0){break;}
+            if (stop_flag){break;}
         }
         if (!stop_flag) {
+            std::ranges::sort(legal_moves,[](const chess::Move a,const chess::Move b){return a.score()>b.score();});
             last=best;
             last.nodes=nodes;
         }
         else{break;}
         //sort here
-        std::ranges::sort(indices,[&](const size_t a,const size_t b){return scores[a]>scores[b];});
-        chess::Movelist sorted_moves;
-        std::vector<int> sorted_scores;
-        sorted_scores.reserve(indices.size());
-        for (size_t i:indices) {
-            sorted_moves.add(legal_moves[i]);
-            sorted_scores.push_back(scores[i]);
-        }
-        legal_moves=std::move(sorted_moves);
-        scores=std::move(sorted_scores);
     }
 
     return last;

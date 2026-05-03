@@ -16,6 +16,5 @@ add_executable(Tuna2 main.cpp
         chess.hpp
         evaluation.h
         move_ordering_testing.h
-        texel.h
 )
 
