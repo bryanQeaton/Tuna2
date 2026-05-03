@@ -223,26 +223,16 @@ __forceinline int evaluation(const chess::Board& pos){
             }
         }
     }
-    mobility+=w_att[1].count()*2+w_att[2].count()+w_att[3].count()+w_att[4].count()-w_att[5].count();
-    mobility-=b_att[1].count()*2+b_att[2].count()+b_att[3].count()+b_att[4].count()-b_att[5].count();
+    mobility+=w_att[1].count()+w_att[2].count()+w_att[3].count()+w_att[4].count()-w_att[5].count();
+    mobility-=b_att[1].count()+b_att[2].count()+b_att[3].count()+b_att[4].count()-b_att[5].count();
     int bishop_pair=0;
     if (pos.pieces(chess::PieceType::BISHOP,chess::Color::WHITE).count()>=2){bishop_pair+=50;}
     if (pos.pieces(chess::PieceType::BISHOP,chess::Color::BLACK).count()>=2){bishop_pair-=50;}
-    int rook_on_passed=0;
-    rook_on_passed+=(w_att[3]&passed_pawns(pos,chess::Color::WHITE)).count()*5;
-    rook_on_passed-=(b_att[3]&passed_pawns(pos,chess::Color::BLACK)).count()*5;
-    int passed=0;
-    passed+=passed_pawns(pos,chess::Color::WHITE).count()*20;
-    passed-=passed_pawns(pos,chess::Color::BLACK).count()*20;
-    int isolated=0;
-    isolated-=(isolated_pawns(pos,chess::Color::WHITE)&~passed_pawns(pos,chess::Color::WHITE)).count()*10;
-    isolated+=(isolated_pawns(pos,chess::Color::BLACK)&~passed_pawns(pos,chess::Color::BLACK)).count()*10;
+
+
 
     value+=mobility;
     value+=bishop_pair;
-    value+=rook_on_passed;
-    value+=passed;
-    value+=isolated;
     return value*side_mult[pos.sideToMove()];
 }
 
