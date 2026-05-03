@@ -27,12 +27,12 @@ inline int history2ply[64][64][64][64];
 inline void update_history(const chess::Move &move,const int bonus,const float decay=.3) {
     auto &table=history[move.from().index()][move.to().index()];
     table+=bonus;
-    std::clamp(table,-1000,1000);
+    table=std::clamp(table,-10000,10000);
 }
 inline void update_history2ply(const chess::Move &move1,const chess::Move &move2,const int bonus,const float decay=.3) {
     auto &table=history2ply[move1.from().index()][move1.to().index()][move2.from().index()][move2.to().index()];
     table+=bonus;
-    std::clamp(table,-1000,1000);
+    table=std::clamp(table,-10000,10000);
 }
 
 
@@ -45,17 +45,13 @@ inline int see(chess::Board &pos,const chess::Square &sqr){
     int value=0;
     chess::Movelist captures;
     chess::movegen::legalmoves<chess::movegen::MoveGenType::CAPTURE>(captures,pos);
-
     std::vector<chess::Move> attackers;
     for(const auto &move:captures){
         if(move.to()==sqr) attackers.push_back(move);
     }
-
     if(attackers.empty()) return 0;
-
     chess::Move smallest_attacker=attackers[0];
     int smallest_value=mat[pos.at(smallest_attacker.from()).type()];
-
     for(size_t m=1;m<attackers.size();m++){
         int v=mat[pos.at(attackers[m].from()).type()];
         if(v<smallest_value){
@@ -63,12 +59,10 @@ inline int see(chess::Board &pos,const chess::Square &sqr){
             smallest_attacker=attackers[m];
         }
     }
-
     int piece_just_captured=mat[pos.at(smallest_attacker.to()).type()];
     pos.makeMove(smallest_attacker);
     value=std::max(0,piece_just_captured-see(pos,sqr));
     pos.unmakeMove(smallest_attacker);
-
     return value;
 }
 inline int see_move(chess::Board &pos,const chess::Move &move) {
@@ -103,6 +97,7 @@ inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const i
         in_check=false;
         standng_pat=evaluation(pos);
         if (standng_pat>=beta){return {standng_pat,1};}
+        if (standng_pat<alph-900){return {standng_pat,1};}
         if (standng_pat>alph){alph=standng_pat;}
     }
     chess::Movelist legal_moves;
@@ -355,7 +350,7 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
                 lmr=1;
             }
             sr=search(pos,-beta,-alph,depth-1-lmr,depth_to_root+1,zw,nw,legal_moves[m]);
-            if (-sr.value>alph&&m>0) {
+            if (-sr.value>alph&&lmr) {
                 sr=search(pos,-beta,-alph,depth-1,depth_to_root+1,zw,nw,legal_moves[m]);
             }
         }
@@ -397,6 +392,8 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
         }
     }
 
+    //debugging
+    //if (abs(eval-value)>350){std::cout<<pos.getFen()<<" | eval: "<<eval<<" | value: "<<value<<"\n";}
 
     //tt
     if (depth>=entry.depth||entry.is_quiesc) { //depth based replacement scheme
