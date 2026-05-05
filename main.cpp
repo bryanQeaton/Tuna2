@@ -10,12 +10,10 @@
 
 
 int main() {
-    //mo_test();
     uci();
-
-    //auto pos=chess::Board("r1bqkb1r/ppp1pppp/2n2n2/3N4/3P4/5N2/PPP1PPPP/R1BQKB1R b KQkq - 0 4");
-    //std::cout<<evaluation(pos)<<"\n";
-    //search(pos,-BOUND,BOUND,8,0,false,false,chess::Move());
+    //mo_test();
+    // auto pos=chess::Board(chess::constants::STARTPOS);
+    // std::cout<<attacks_from(pos,chess::Square::SQ_E3);
 
     return 0;
 }

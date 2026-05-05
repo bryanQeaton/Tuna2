@@ -141,15 +141,35 @@ inline void uci(const int depth_limit = MAX_DEPTH) {
                       << " score mate " << ret.mate_in_n
                       << " nodes " << ret.nodes
                       << " nps " << (ret.nodes * 1000 / elapsed)
-                      << "\n";
+                      << "";
             }
             else {
                 std::cout << "info depth " << ret.depth
                       << " score cp " << ret.value
                       << " nodes " << ret.nodes
                       << " nps " << (ret.nodes * 1000 / elapsed)
-                      << "\n";
+                      << "";
             }
+            // auto p=pos;
+            // std::vector<chess::Move> pv={chess::uci::uciToMove(p,ret.move)};
+            // p.makeMove(chess::uci::uciToMove(p,ret.move));
+            // Entry entry=tt[p.hash()];
+            // chess::Move last_move{};
+            // int counter=0;
+            // do {
+            //     counter++;
+            //     auto move=entry.best_move;
+            //     if (move==chess::Move()||!p.isLegal(move)){break;}
+            //     p.makeMove(move);
+            //     pv.push_back(move);
+            //     last_move=move;
+            //     entry=tt[p.hash()];
+            //
+            // } while (last_move!=chess::Move()&&counter<MAX_DEPTH);
+            // for (auto m:pv){
+            //     std::cout<<chess::uci::moveToUci(m)<<" ";
+            // }
+            std::cout<<"\n";
 
             std::cout<<"bestmove "<<ret.move<<"\n"<< std::flush;
 

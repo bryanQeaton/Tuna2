@@ -28,11 +28,11 @@ inline Engine_return root(chess::Board &pos,const int time_limit,const int max_d
         for (int m=0;m<legal_moves.size();m++) {
             pos.makeMove(legal_moves[m]);
             Search_return sr;
-            if (m==0) {sr=search(pos,-beta,-alph,d,0,false,false,legal_moves[m]);}
+            if (m==0) {sr=search(pos,-beta,-alph,d,0,false,legal_moves[m]);}
             else {
-                sr=search(pos,-alph-1,-alph,d,0,true,false,legal_moves[m]);
+                sr=search(pos,-alph-1,-alph,d,0,false,legal_moves[m]);
                 if (-sr.value>alph) {
-                    sr=search(pos,-beta,-alph,d,0,false,false,legal_moves[m]);
+                    sr=search(pos,-beta,-alph,d,0,false,legal_moves[m]);
                 }
             }
             pos.unmakeMove(legal_moves[m]);
