@@ -220,11 +220,14 @@ __forceinline int evaluation(const chess::Board& pos){
             }
         }
     }
+    chess::Bitboard w_atts=w_att[0]|w_att[1]|w_att[2]|w_att[3]|w_att[4]|w_att[5];
+    chess::Bitboard b_atts=b_att[0]|b_att[1]|b_att[2]|b_att[3]|b_att[4]|b_att[5];
     mobility+=w_att[1].count()+w_att[2].count()+w_att[3].count()+w_att[4].count()-w_att[5].count();
     mobility-=b_att[1].count()+b_att[2].count()+b_att[3].count()+b_att[4].count()-b_att[5].count();
     int bishop_pair=0;
     if (pos.pieces(chess::PieceType::BISHOP,chess::Color::WHITE).count()>=2){bishop_pair+=50;}
     if (pos.pieces(chess::PieceType::BISHOP,chess::Color::BLACK).count()>=2){bishop_pair-=50;}
+
 
 
     value+=mobility;

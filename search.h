@@ -22,19 +22,63 @@ inline void update_killer(const chess::Move &move,const int ply) {
 }
 inline chess::Move refutation_move[64][64]{};
 inline int score_history[2]{};
+inline int history[64][64]{};
+inline int history2ply[64][64][64][64];
+inline void update_history(const chess::Move &move,const int bonus,const float decay=.3) {
+    auto &table=history[move.from().index()][move.to().index()];
+    table+=bonus;
+    table=std::clamp(table,-10000,10000);
+}
+inline void update_history2ply(const chess::Move &move1,const chess::Move &move2,const int bonus,const float decay=.3) {
+    auto &table=history2ply[move1.from().index()][move1.to().index()][move2.from().index()][move2.to().index()];
+    table+=bonus;
+    table=std::clamp(table,-10000,10000);
+}
+
 
 struct Search_return {
     int value=-BOUND;
     uint64_t nodes=0;
 };
 
-
+inline int see(chess::Board &pos,const chess::Square &sqr){
+    int value=0;
+    chess::Movelist captures;
+    chess::movegen::legalmoves<chess::movegen::MoveGenType::CAPTURE>(captures,pos);
+    std::vector<chess::Move> attackers;
+    for(const auto &move:captures){
+        if(move.to()==sqr) attackers.push_back(move);
+    }
+    if(attackers.empty()) return 0;
+    chess::Move smallest_attacker=attackers[0];
+    int smallest_value=mat[pos.at(smallest_attacker.from()).type()];
+    for(size_t m=1;m<attackers.size();m++){
+        int v=mat[pos.at(attackers[m].from()).type()];
+        if(v<smallest_value){
+            smallest_value=v;
+            smallest_attacker=attackers[m];
+        }
+    }
+    int piece_just_captured=mat[pos.at(smallest_attacker.to()).type()];
+    pos.makeMove(smallest_attacker);
+    value=std::max(0,piece_just_captured-see(pos,sqr));
+    pos.unmakeMove(smallest_attacker);
+    return value;
+}
+inline int see_move(chess::Board &pos,const chess::Move &move) {
+    int value=0;
+    int piece_just_captured=mat[pos.at(move.to()).type()];
+    pos.makeMove(move);
+    value=piece_just_captured-see(pos,move.to());
+    pos.unmakeMove(move);
+    return value;
+}
 
 inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const int depth_to_root,const bool zw) {
     if (stop_flag){return {ABORT_SCORE,0};}
     const uint64_t hash=pos.hash();
     PREFETCH(tt.get_bucket(hash));
-    if (pos.isInsufficientMaterial()||pos.isRepetition()){return {0,1};}
+    if (pos.isInsufficientMaterial()||pos.isRepetition()){return {DRAW_SCORE,1};}
     //tt
     const int alph_orig=alph;
     auto best_move=chess::Move();
@@ -53,6 +97,7 @@ inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const i
         in_check=false;
         standng_pat=evaluation(pos);
         if (standng_pat>=beta){return {standng_pat,1};}
+        if (standng_pat<alph-900){return {standng_pat,1};}
         if (standng_pat>alph){alph=standng_pat;}
     }
     chess::Movelist legal_moves;
@@ -62,7 +107,7 @@ inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const i
         if (in_check){return {-BOUND+depth_to_root,1};}
         return {standng_pat,1};
     }
-    if (pos.isHalfMoveDraw()){return {0,1};}
+    if (pos.isHalfMoveDraw()){return {DRAW_SCORE,1};}
 
 
     int value=standng_pat;
@@ -71,11 +116,12 @@ inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const i
         //tt move
         if (legal_moves[m]==best_move){legal_moves[m].setScore(32766);}
         //mvv-lva
-        if (is_capture(pos,legal_moves[m])) {
-            const int mvvlva=mat[static_cast<int>(pos.at(legal_moves[m].to()).type().internal())]*10-
-            mat[static_cast<int>(pos.at(legal_moves[m].from()).type().internal())];
-            legal_moves[m].setScore(legal_moves[m].score()+mvvlva);
-        }
+        // if (is_capture(pos,legal_moves[m])) {
+        //     const int mvvlva=mat[static_cast<int>(pos.at(legal_moves[m].to()).type().internal())]*10-
+        //     mat[static_cast<int>(pos.at(legal_moves[m].from()).type().internal())];
+        //     legal_moves[m].setScore(legal_moves[m].score()+mvvlva);
+        // }
+        legal_moves[m].setScore(legal_moves[m].score()+see_move(pos,legal_moves[m]));
     }
     for (int m=0;m<legal_moves.size();m++) {
         //move ordering
@@ -88,6 +134,7 @@ inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const i
             }
         }
         if (best_idx!=m) {std::swap(legal_moves[m],legal_moves[best_idx]);}
+        if (legal_moves[m].score()<-100){continue;}
         //iterate
         pos.makeMove(legal_moves[m]);
         Search_return sr;
@@ -124,6 +171,7 @@ inline Search_return quiesence(chess::Board &pos,int alph,const int beta,const i
     }
     return {value,nodes};
 }
+
 
 inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const int depth_to_root,const bool zw,const bool nw,const chess::Move &last_move,const chess::Move exclude=chess::Move()) {
     if (stop_flag){return {ABORT_SCORE,0};}
@@ -171,8 +219,7 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
         auto sr=quiesence(pos,alph,beta,depth_to_root,zw);
         return {sr.value,sr.nodes};
     }
-
-
+    //nmp
     if (!is_pv&&!nw&&!in_check&&has_non_pawn_material_stm(pos)&&eval>=beta) {
         auto lm=chess::Move::make(chess::Square::SQ_A1,chess::Square::SQ_A1);
         if (pos.sideToMove()) {
@@ -192,15 +239,15 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
     if (pos.isHalfMoveDraw()){return {0,1};}
 
     //singular extension check
-    int singular_extension=0;
-    if (legal_moves.size()>1&&entry.hash==hash&&entry.depth>=depth&&(entry.flag==-1||entry.flag==0)&&entry.best_move!=chess::Move()&&!nw) {
+    bool singular_extension=false;
+    if (legal_moves.size()>1&&entry.hash==hash&&entry.depth>=depth&&depth>=2&&(entry.flag==-1||entry.flag==0)&&entry.best_move!=chess::Move()&&!nw) {
         auto sr=search(pos,entry.value-350-1,entry.value-350,depth/2,depth_to_root,true,true,last_move,best_move);
         if (sr.value<entry.value-350) {
-            singular_extension=1;
+            singular_extension=true;
         }
     }
     //not improving score reduction
-    if (!is_pv&&!improving&&!in_check&&singular_extension==0&&depth<=4&&legal_moves.size()>1) {
+    if (!is_pv&&!improving&&!in_check&&!singular_extension&&depth<=4&&legal_moves.size()>1) {
         depth-=1;
     }
     //if (legal_moves.size()==1){depth+=1;} //poor performance
@@ -253,7 +300,7 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
         }
 
         //tt move - must be last
-        if (move==best_move){move.setScore(30066);}
+        if (move==best_move){move.setScore(32767);}
     }
     for (int m=0;m<legal_moves.size();m++) {
         if (legal_moves[m]==exclude){continue;}
@@ -274,11 +321,8 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
         Search_return sr;
         if (m==0||zw) {sr=search(pos,-beta,-alph,depth-1+singular_extension,depth_to_root+1,zw,nw,legal_moves[m]);}
         else {
-            int lmr=0;
-            if (exclude==chess::Move()&&is_quiet(pos,legal_moves[m])){lmr=log(m);}
-
-            sr=search(pos,-alph-1,-alph,depth-1-lmr,depth_to_root+1,true,nw,legal_moves[m]);
-            if (-sr.value>alph&&is_pv) {
+            sr=search(pos,-alph-1,-alph,depth-1,depth_to_root+1,true,nw,legal_moves[m]);
+            if (-sr.value>alph&&-sr.value) {
                 sr=search(pos,-beta,-alph,depth-1,depth_to_root+1,zw,nw,legal_moves[m]);
             }
         }
@@ -301,7 +345,6 @@ inline Search_return search(chess::Board &pos,int alph,int beta,int depth,const 
             alph=value;
         }
     }
-
 
     //tt
     if (depth>=entry.depth||entry.is_quiesc) { //depth based replacement scheme
